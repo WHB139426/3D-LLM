@@ -1,0 +1,10 @@
+scripts/update.sh
+experiments/*.pth
+*.out
+wandb/*
+
+*/__pycache__/
+*/*/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/

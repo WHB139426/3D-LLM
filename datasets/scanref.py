@@ -2,8 +2,10 @@ import numpy as np
 import os
 import sys
 import re
+import glob
 from torch.utils.data import Dataset
 from transformers import AutoProcessor
+from PIL import Image
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
 from mm_utils.utils import *
@@ -50,10 +52,10 @@ class ScanRefDataset(Dataset):
         self,
         split_path = '/home/haibo/haibo_workspace/data/scanref/ScanRefer_filtered_train.json',
         anno_path = '/home/haibo/haibo_workspace/data/scannet-dataset',
-        processor_path='/home/haibo/haibo_workspace/weights/Qwen3-0.6B',
-        # video_path = '/home/haibo/haibo_workspace/data/scannet-frames',
+        processor_path='/home/haibo/haibo_workspace/weights/InternVL3_5-1B-HF',
+        video_path = '/home/haibo/haibo_workspace/data/scannet-frames',
         num_bins = 1280,
-        # frame_num = 32,
+        num_frames = 32,
     ):
         super().__init__()
         raw_annos = load_json(split_path) 
@@ -61,14 +63,30 @@ class ScanRefDataset(Dataset):
         self.anno_path = anno_path
         self.video_path = video_path
         self.num_bins = num_bins
-        self.frame_num = frame_num
+        self.num_frames = num_frames
 
-        self.tokenizer = AutoProcessor.from_pretrained(processor_path, use_fast=False)
-        # from transformers import InternVLProcessor
-        # self.processor = InternVLProcessor.from_pretrained(processor_path, use_fast=False)
+        self.processor = AutoProcessor.from_pretrained(processor_path, use_fast=False)
+        self.tokenizer = self.processor.tokenizer
 
     def __len__(self):
         return len(self.annos)
+
+    def get_frames(self, video_path):
+        search_pattern = os.path.join(video_path, '*.jpg')
+        all_jpg_files = sorted(glob.glob(search_pattern))
+
+        if self.num_frames >= len(all_jpg_files):
+            indices = np.arange(len(all_jpg_files))
+        else:
+            indices_float = np.linspace(0, len(all_jpg_files) - 1, num=self.num_frames)
+            indices = np.round(indices_float).astype(int)
+
+        selected_files = [all_jpg_files[i] for i in sorted(list(set(indices)))]
+        images_all = []
+        for file in selected_files:
+            images_all.append(Image.open(file))
+
+        return images_all
 
     def __getitem__(self, i):
         scene_id = self.annos[i]["scene_id"]
@@ -83,7 +101,6 @@ class ScanRefDataset(Dataset):
         # extract layout
         labels, bboxes = load_bboxes(ply_path, segs_path, agg_path)
         assert len(labels) == len(bboxes)
-
         labels = [labels[object_id]]
         bboxes = [bboxes[object_id]]
 
@@ -94,7 +111,7 @@ class ScanRefDataset(Dataset):
         points, colors = get_points_and_colors(point_cloud)
         coord_min = np.min(points, 0) # [x_min, y_min, z_min] for PositiveShift
         input_pcd = preprocess_point_cloud(points, colors, grid_size, self.num_bins)[0] # [N, 9] 9: coord, xyz, rgb
-
+        
         # prepare prompt and response
         prompt = SCANREF_PROMPT
         prompt = prompt.replace('<object_name>', labels[0]).replace('<object_description>', description)
@@ -118,6 +135,16 @@ class ScanRefDataset(Dataset):
             ]
 
         data_dict = preprocess_qwen(conversations, self.tokenizer)
+
+        # get frames
+        video_path = os.path.join(self.video_path, scene_id)
+        video = self.get_frames(video_path)
+        pixel_values_videos = []
+        for frame in video:
+            frame = resize_and_center_crop(frame, 448)
+            pixel_values = self.processor.image_processor.preprocess(frame, return_tensors='pt')['pixel_values'][0] # [3, 448, 448]
+            pixel_values_videos.append(pixel_values)
+        data_dict['pixel_values_videos'] = torch.stack(pixel_values_videos, dim=0) # [T, 3, 448, 448]
         data_dict['scene_id'] = scene_id
         data_dict['input_pcd'] = input_pcd
         data_dict['coord_min'] = coord_min
@@ -137,6 +164,6 @@ class ScanRefDataset(Dataset):
 #     print('input_ids: ', dataset.tokenizer.decode(item['input_ids']))
 #     print('labels: ', dataset.tokenizer.decode(item['labels']).replace('<|endoftext|>',''))
 
-#     print(item['input_pcd'].shape)
+#     print(item['pixel_values_videos'].shape, item['input_pcd'].shape)
 #     print()
 # print(len(dataset))

@@ -36,7 +36,7 @@ class SFT_Trainer(Trainer):
         """
         if is_sagemaker_mp_enabled():
             return super().create_optimizer()
-        
+
         opt_model = self.model
 
         if self.optimizer is None:
@@ -45,6 +45,8 @@ class SFT_Trainer(Trainer):
             lr_mapper = {}
             if self.args.point_lr is not None:
                 lr_mapper['point_backbone'] = self.args.point_lr
+            if self.args.vision_tower_lr is not None:
+                lr_mapper['vision_tower'] = self.args.vision_tower_lr
             if len(lr_mapper) > 0:
                 special_lr_parameters = [name for name, _ in opt_model.named_parameters() if any(module_keyword in name for module_keyword in lr_mapper)]
                 optimizer_grouped_parameters = [
@@ -173,8 +175,8 @@ class SFT_Trainer(Trainer):
         # log loss
         self._metrics["my_loss"].append(self.accelerator.gather_for_metrics(loss.detach()).mean().item())
 
-        group_lrs = [group["lr"] for group in self.optimizer.param_groups] # group_lrs[0, 1]: learning_rate; group_lrs[2, 3]: point_lr; 
-        self._metrics["point_lr"].append(group_lrs[2])
+        group_lrs = [group["lr"] for group in self.optimizer.param_groups] # group_lrs[0, 1]: learning_rate; group_lrs[2, 3]: point_lr/vision_tower_lr; 
+        self._metrics["encoder_lr"].append(group_lrs[2])
 
         return (loss, outputs) if return_outputs else loss
 

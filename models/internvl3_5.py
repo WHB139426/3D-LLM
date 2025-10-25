@@ -248,8 +248,8 @@ class InternVLForConditionalGeneration(InternVLPreTrainedModel, GenerationMixin)
 # import os
 # import sys
 # sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
-# from datasets.video_r1 import VideoR1SFT
-# dataset = VideoR1SFT(processor_path='/home/haibo/haibo_workspace/weights/InternVL3_5-1B-HF',)
+# from datasets.scanref import ScanRefDataset
+# dataset = ScanRefDataset(processor_path='/home/haibo/haibo_workspace/weights/InternVL3_5-1B-HF',)
 
 # device = 'cuda:0'
 # model = InternVLForConditionalGeneration.from_pretrained(

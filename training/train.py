@@ -25,13 +25,15 @@ IS_TOKENIZER_GREATER_THAN_0_14 = version.parse(tokenizers.__version__) >= versio
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="Qwen/Qwen3-0.6B")
     unfreeze_point_backbone: bool = field(default=False)
+    unfreeze_vision_tower: bool = field(default=False)
     point_name_or_path: Optional[str] = field(default="Sonata")
     resume_path: Optional[str] = field(default=None)
 
 @dataclass
 class DataArguments:
     num_bins: Optional[int] = field(default=1280)
-    dataset: Optional[str] = field(default="spatiallm")
+    num_frames: Optional[int] = field(default=32)
+    dataset: Optional[str] = field(default="scanref")
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
@@ -43,6 +45,7 @@ class TrainingArguments(transformers.TrainingArguments):
     bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     model_max_length: int = field(default=32*1024, metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."})
+    vision_tower_lr: Optional[float] = None
     point_lr: Optional[float] = None
 
 def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str):
@@ -58,7 +61,8 @@ class DataCollatorForSupervisedDataset(object):
         batch = dict()
         batch["input_ids"] = [instance["input_ids"] for instance in instances]
         batch["labels"] = [instance["labels"] for instance in instances]
-        batch["input_pcd"] = [instance["input_pcd"] for instance in instances]
+        # batch["input_pcd"] = [instance["input_pcd"] for instance in instances]
+        batch["pixel_values_videos"] = [instance["pixel_values_videos"] for instance in instances]
         return batch
 
 def make_supervised_data_module(data_args, processor_path) -> Dict[str, Any]:
@@ -90,8 +94,10 @@ def make_supervised_data_module(data_args, processor_path) -> Dict[str, Any]:
         scanref_dataset = ScanRefDataset(
             split_path = '/home/haibo/haibo_workspace/data/scanref/ScanRefer_filtered_train.json',
             anno_path = '/home/haibo/haibo_workspace/data/scannet-dataset',
+            video_path = '/home/haibo/haibo_workspace/data/scannet-frames',
             processor_path=processor_path,
             num_bins = data_args.num_bins,
+            num_frames = data_args.num_frames,
         )
         train_dataset.append(scanref_dataset)
         print('add scanref')
@@ -100,8 +106,10 @@ def make_supervised_data_module(data_args, processor_path) -> Dict[str, Any]:
         multi3dref_dataset = Multi3DRefDataset(
             split_path = '/home/haibo/haibo_workspace/data/multi3drefer_train_val/multi3drefer_train.json',
             anno_path = '/home/haibo/haibo_workspace/data/scannet-dataset',
+            video_path = '/home/haibo/haibo_workspace/data/scannet-frames',
             processor_path=processor_path,
             num_bins = data_args.num_bins,
+            num_frames = data_args.num_frames,
         )
         train_dataset.append(multi3dref_dataset)
         print('add multi3dref')
@@ -126,35 +134,46 @@ def train():
     local_rank = training_args.local_rank
     compute_dtype = torch.bfloat16 if training_args.bf16 else torch.float32
 
-    from models.spatiallm_qwen3 import SpatialQwen3
-    from transformers import Qwen3Config
-    model = SpatialQwen3(
-        config=Qwen3Config.from_pretrained(model_args.model_name_or_path),
-        sonata_path=model_args.point_name_or_path,
-        llm_path=model_args.model_name_or_path,
-        tokenizer_model_max_length=training_args.model_max_length,
-        torch_dtype=compute_dtype,
-        num_bins=data_args.num_bins,
-    )
-    if model_args.resume_path != None:
-        model.load_resume_ckpt(model_args.resume_path)
+    # from models.spatiallm_qwen3 import SpatialQwen3
+    # from transformers import Qwen3Config
+    # model = SpatialQwen3(
+    #     config=Qwen3Config.from_pretrained(model_args.model_name_or_path),
+    #     sonata_path=model_args.point_name_or_path,
+    #     llm_path=model_args.model_name_or_path,
+    #     tokenizer_model_max_length=training_args.model_max_length,
+    #     torch_dtype=compute_dtype,
+    #     num_bins=data_args.num_bins,
+    # )
+    # if model_args.resume_path != None:
+    #     model.load_resume_ckpt(model_args.resume_path)
 
-    # freeze point_backbone while unfreeze projector
-    if not model_args.unfreeze_point_backbone:
-        for name, param in model.point_backbone.named_parameters():
+    from models.internvl3_5 import InternVLForConditionalGeneration
+    model = InternVLForConditionalGeneration.from_pretrained(model_args.model_name_or_path, 
+                                    tokenizer_model_max_length=training_args.model_max_length,
+                                    attn_implementation="flash_attention_2", torch_dtype=compute_dtype,)
+    model.config.use_cache = False
+
+    # # freeze point_backbone while unfreeze projector
+    # if not model_args.unfreeze_point_backbone:
+    #     for name, param in model.point_backbone.named_parameters():
+    #         param.requires_grad = False
+
+    # freeze vision_tower while unfreeze projector
+    if not model_args.unfreeze_vision_tower:
+        for name, param in model.vision_tower.named_parameters():
             param.requires_grad = False
 
     # enable lora
     if training_args.lora_enable:
         raise NotImplementedError
 
-    # tokenizer to save
+    # processor to save
     from transformers import AutoProcessor
-    tokenizer = AutoProcessor.from_pretrained(model_args.model_name_or_path, use_fast=False)
+    processor = AutoProcessor.from_pretrained(model_args.model_name_or_path, use_fast=False)
 
     # data_module and trainer
     data_module = make_supervised_data_module(data_args=data_args, processor_path=model_args.model_name_or_path)
-    trainer = SFT_Trainer(model=model, args=training_args, processing_class=tokenizer, **data_module)
+    trainer = SFT_Trainer(model=model, args=training_args, processing_class=processor, **data_module)
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)

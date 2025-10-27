@@ -16,7 +16,7 @@ from mm_utils.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
 from mm_utils.utils import *
 from models.internvl3_5 import InternVLForConditionalGeneration
 
-MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/weights/InternVL3_5-1B-HF"
+MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef"
 
 device = 'cuda:0'
 torch_dtype = torch.bfloat16

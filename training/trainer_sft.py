@@ -39,6 +39,14 @@ class SFT_Trainer(Trainer):
 
         opt_model = self.model
 
+        x = []
+        for name, param in opt_model.named_parameters():
+            if param.requires_grad == True:
+                x.append(name)
+        import torch.distributed as dist
+        if dist.get_rank() == 0:
+            print('\n\n\ntrainable param: \n', x, '\n\n\n')
+
         if self.optimizer is None:
             decay_parameters = get_parameter_names(opt_model, ALL_LAYERNORM_LAYERS)
             decay_parameters = [name for name in decay_parameters if "bias" not in name]
@@ -176,7 +184,8 @@ class SFT_Trainer(Trainer):
         self._metrics["my_loss"].append(self.accelerator.gather_for_metrics(loss.detach()).mean().item())
 
         group_lrs = [group["lr"] for group in self.optimizer.param_groups] # group_lrs[0, 1]: learning_rate; group_lrs[2, 3]: point_lr/vision_tower_lr; 
-        self._metrics["encoder_lr"].append(group_lrs[2])
+        if len(group_lrs)>2:
+            self._metrics["encoder_lr"].append(group_lrs[2])
 
         return (loss, outputs) if return_outputs else loss
 

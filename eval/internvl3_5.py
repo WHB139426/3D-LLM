@@ -16,9 +16,9 @@ from mm_utils.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
 from mm_utils.utils import *
 from models.internvl3_5 import InternVLForConditionalGeneration
 
-MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef"
+MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef/checkpoint-20000"
 
-device = 'cuda:0'
+device = 'cuda:7'
 torch_dtype = torch.bfloat16
 model = InternVLForConditionalGeneration.from_pretrained(
     MODEL_NAME_OR_PATH, 
@@ -32,10 +32,12 @@ print(get_parameter_number(model))
 # dataset = SpatialLMDataset(anno_path = '/home/haibo/haibo_workspace/data/SpatialLM-Dataset/spatiallm_val.json',)
 # from datasets.scannet import ScannetDataset
 # dataset = ScannetDataset(split_path = '/home/haibo/haibo_workspace/data/scannet-dataset/val.json',)
-from datasets.scanref import ScanRefDataset
+# from datasets.scanref import ScanRefDataset
 dataset = ScanRefDataset(split_path = '/home/haibo/haibo_workspace/data/scanref/ScanRefer_filtered_val.json',)
-# from datasets.multi3dref import Multi3DRefDataset
+from datasets.multi3dref import Multi3DRefDataset
 # dataset = Multi3DRefDataset(split_path = '/home/haibo/haibo_workspace/data/multi3drefer_train_val/multi3drefer_val.json',)
+# from datasets.referit3d import Refit3DDataset
+# dataset = Refit3DDataset(split_path = '/home/haibo/haibo_workspace/data/referit3d/nr3d.csv',)
 
 input_ids = []
 labels = []

@@ -131,9 +131,9 @@ class DataCollatorForSupervisedDataset(object):
         batch = dict()
         batch["input_ids"] = [instance["input_ids"] for instance in instances]
         batch["labels"] = [instance["labels"] for instance in instances]
-        if "pixel_values_videos" in instance.keys():
+        if "pixel_values_videos" in instances[0].keys():
                 batch["pixel_values_videos"] = [instance["pixel_values_videos"] for instance in instances]
-        if "input_pcd" in instance.keys():
+        if "input_pcd" in instances[0].keys():
                 batch["input_pcd"] = [instance["input_pcd"] for instance in instances]
         return batch
 
@@ -185,7 +185,18 @@ def make_supervised_data_module(data_args, processor_path) -> Dict[str, Any]:
         )
         train_dataset.append(multi3dref_dataset)
         print('add multi3dref')
-
+    if 'referit3d' in data_args.dataset:
+        from datasets.referit3d import Refit3DDataset
+        referit3d_dataset = Refit3DDataset(
+            split_path = '/home/haibo/haibo_workspace/data/referit3d/nr3d.csv',
+            anno_path = '/home/haibo/haibo_workspace/data/scannet-dataset',
+            video_path = '/home/haibo/haibo_workspace/data/scannet-frames',
+            processor_path=processor_path,
+            num_bins = data_args.num_bins,
+            num_frames = data_args.num_frames,
+        )
+        train_dataset.append(referit3d_dataset)
+        print('add multi3dref')
     data_collator = DataCollatorForSupervisedDataset()
 
     if len(train_dataset) == 1:

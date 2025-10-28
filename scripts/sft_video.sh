@@ -1,4 +1,4 @@
-MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef"
+MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/weights/InternVL3_5-1B-HF"
 OUTPUT_DIR="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef"
 RUN_NAME="SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef"
 
@@ -7,7 +7,7 @@ RUN_NAME="SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef"
 
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 torchrun --nnodes=1 --nproc-per-node=6 --master_port=32123 training/train.py \
     --deepspeed ./configs/zero3.json \
-    --dataset scanref_multi3dref \
+    --dataset scanref_multi3dref_referit3d \
     --model_name_or_path ${MODEL_NAME_OR_PATH} \
     --output_dir ${OUTPUT_DIR} \
     --num_train_epochs 30 \

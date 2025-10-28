@@ -10,6 +10,7 @@ import sys
 import numpy as np
 from torch.backends import cudnn
 from PIL import Image
+import csv
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
 from mm_utils.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IMAGE_START_TOKEN, DEFAULT_IMAGE_END_TOKEN
@@ -25,6 +26,14 @@ def init_seeds(seed=42, cuda_deterministic=True):
     else:  # faster, less reproducible
         cudnn.deterministic = False
         cudnn.benchmark = True
+
+def load_csv(path):
+    data = []
+    with open(path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            data.append(dict(row))
+    return data
 
 def load_json(path):
     with open(path) as f:

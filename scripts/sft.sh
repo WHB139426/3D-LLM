@@ -8,7 +8,7 @@ RUN_NAME="SpatialLM-Qwen3-0.6B-FT-ScanRef-Multi3DRef"
 CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nnodes=1 --nproc-per-node=4 --master_port=32123 training/train.py \
     --unfreeze_point_backbone \
     --deepspeed ./configs/zero2.json \
-    --dataset scanref_multi3dref \
+    --dataset scanref_multi3dref_referit3d \
     --resume_path ${RESUME_PATH} \
     --model_name_or_path ${MODEL_NAME_OR_PATH} \
     --point_name_or_path ${POINT_DIR} \

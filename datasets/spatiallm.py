@@ -44,7 +44,12 @@ class SpatialLMDataset(Dataset):
         self.pcd_path = pcd_path
         self.layout_path = layout_path
         self.num_bins = num_bins
-        self.tokenizer = AutoProcessor.from_pretrained(processor_path, use_fast=False)
+
+        self.processor = AutoProcessor.from_pretrained(processor_path, use_fast=False)
+        if hasattr(self.processor, 'tokenizer'):
+            self.tokenizer = self.processor.tokenizer
+        else:
+            self.tokenizer = self.processor
 
     def __len__(self):
         return len(self.annos)

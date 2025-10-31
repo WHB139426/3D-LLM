@@ -219,6 +219,9 @@ def train():
     local_rank = training_args.local_rank
     compute_dtype = torch.bfloat16 if training_args.bf16 else torch.float32
 
+    """
+    point inputs
+    """
     # from models.spatiallm_qwen3 import SpatialQwen3
     # from transformers import Qwen3Config
     # model = SpatialQwen3(
@@ -231,18 +234,19 @@ def train():
     # )
     # if model_args.resume_path != None:
     #     model.load_resume_ckpt(model_args.resume_path)
-
-    from models.internvl3_5 import InternVLForConditionalGeneration
-    model = InternVLForConditionalGeneration.from_pretrained(model_args.model_name_or_path, 
-                                    tokenizer_model_max_length=training_args.model_max_length,
-                                    attn_implementation="flash_attention_2", torch_dtype=compute_dtype,)
-    model.config.use_cache = False
-
     # # freeze point_backbone while unfreeze projector
     # if not model_args.unfreeze_point_backbone:
     #     for name, param in model.point_backbone.named_parameters():
     #         param.requires_grad = False
 
+    """
+    video inputs
+    """
+    from models.internvl3_5 import InternVLForConditionalGeneration
+    model = InternVLForConditionalGeneration.from_pretrained(model_args.model_name_or_path, 
+                                    tokenizer_model_max_length=training_args.model_max_length,
+                                    attn_implementation="flash_attention_2", torch_dtype=compute_dtype,)
+    model.config.use_cache = False
     # freeze vision_tower while unfreeze projector
     if not model_args.unfreeze_vision_tower:
         for name, param in model.vision_tower.named_parameters():

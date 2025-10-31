@@ -5,7 +5,7 @@ OUTPUT_DIR="/home/haibo/haibo_workspace/checkpoints/SpatialLM-Qwen3-0.6B-Pretrai
 
 RUN_NAME="SpatialLM-Qwen3-0.6B-Pretrain-SpatialLM-Scannet"
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nnodes=1 --nproc-per-node=4 --master_port=12345 training/train.py \
+CUDA_VISIBLE_DEVICES=4,5,6,7 torchrun --nnodes=1 --nproc-per-node=4 --master_port=12345 training/train.py \
     --unfreeze_point_backbone \
     --deepspeed ./configs/zero2.json \
     --dataset spatiallm_scannet \

@@ -79,7 +79,10 @@ class Refit3DDataset(Dataset):
         self.num_frames = num_frames
 
         self.processor = AutoProcessor.from_pretrained(processor_path, use_fast=False)
-        self.tokenizer = self.processor.tokenizer
+        if hasattr(self.processor, 'tokenizer'):
+            self.tokenizer = self.processor.tokenizer
+        else:
+            self.tokenizer = self.processor
 
     def __len__(self):
         return len(self.annos)
@@ -160,14 +163,15 @@ class Refit3DDataset(Dataset):
         data_dict = preprocess_qwen(conversations, self.tokenizer)
 
         # get frames
-        video_path = os.path.join(self.video_path, scene_id)
-        video = self.get_frames(video_path)
-        pixel_values_videos = []
-        for frame in video:
-            frame = resize_and_center_crop(frame, 448)
-            pixel_values = self.processor.image_processor.preprocess(frame, return_tensors='pt')['pixel_values'][0] # [3, 448, 448]
-            pixel_values_videos.append(pixel_values)
-        data_dict['pixel_values_videos'] = torch.stack(pixel_values_videos, dim=0) # [T, 3, 448, 448]
+        if self.num_frames > 0:
+            video_path = os.path.join(self.video_path, scene_id)
+            video = self.get_frames(video_path)
+            pixel_values_videos = []
+            for frame in video:
+                frame = resize_and_center_crop(frame, 448)
+                pixel_values = self.processor.image_processor.preprocess(frame, return_tensors='pt')['pixel_values'][0] # [3, 448, 448]
+                pixel_values_videos.append(pixel_values)
+            data_dict['pixel_values_videos'] = torch.stack(pixel_values_videos, dim=0) # [T, 3, 448, 448]
         data_dict['scene_id'] = scene_id
         data_dict['input_pcd'] = input_pcd
         data_dict['coord_min'] = coord_min

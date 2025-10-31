@@ -1,3 +1,3 @@
-bash scripts/pretrain.sh
+bash scripts/pretrain_point.sh
 sleep 60
-bash scripts/sft.sh
+bash scripts/sft_point.sh

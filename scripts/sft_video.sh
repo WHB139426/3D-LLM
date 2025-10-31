@@ -10,13 +10,13 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nnodes=1 --nproc-per-node=4 --master_por
     --dataset scanref_multi3dref_referit3d \
     --model_name_or_path ${MODEL_NAME_OR_PATH} \
     --output_dir ${OUTPUT_DIR} \
-    --num_train_epochs 30 \
+    --num_train_epochs 10 \
     --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 1 \
     --save_strategy "steps" \
     --save_steps 20000 \
     --save_total_limit 1 \
-    --learning_rate 5e-5 \
+    --learning_rate 2e-5 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \

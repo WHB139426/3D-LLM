@@ -16,7 +16,7 @@ from mm_utils.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
 from mm_utils.utils import *
 from models.internvl3_5 import InternVLForConditionalGeneration
 
-MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef/checkpoint-20000"
+MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef/checkpoint-120000"
 
 device = 'cuda:7'
 torch_dtype = torch.bfloat16
@@ -32,9 +32,9 @@ print(get_parameter_number(model))
 # dataset = SpatialLMDataset(anno_path = '/home/haibo/haibo_workspace/data/SpatialLM-Dataset/spatiallm_val.json',)
 # from datasets.scannet import ScannetDataset
 # dataset = ScannetDataset(split_path = '/home/haibo/haibo_workspace/data/scannet-dataset/val.json',)
-# from datasets.scanref import ScanRefDataset
+from datasets.scanref import ScanRefDataset
 dataset = ScanRefDataset(split_path = '/home/haibo/haibo_workspace/data/scanref/ScanRefer_filtered_val.json',)
-from datasets.multi3dref import Multi3DRefDataset
+# from datasets.multi3dref import Multi3DRefDataset
 # dataset = Multi3DRefDataset(split_path = '/home/haibo/haibo_workspace/data/multi3drefer_train_val/multi3drefer_val.json',)
 # from datasets.referit3d import Refit3DDataset
 # dataset = Refit3DDataset(split_path = '/home/haibo/haibo_workspace/data/referit3d/nr3d.csv',)
@@ -134,26 +134,8 @@ def denormalize_bbox(output_text, coord_min, grid_size):
 
 pred = denormalize_bbox(output_and_gt_text, coord_min[0], grid_size[0])
 
-# import shutil
-# import os
-# with open('/home/haibo/haibo_workspace/data/SpatialLM-Dataset/examples/pred.txt', "w", encoding="utf-8") as f:
-#     f.write(pred + "\n")
-
-# src = f"/home/haibo/haibo_workspace/data/SpatialLM-Dataset/pcd/{scene_ids[0]}.ply"
-# dst = "/home/haibo/haibo_workspace/data/SpatialLM-Dataset/examples/pred.ply"
-# shutil.copy(src, dst)
-
-# src = f"/home/haibo/haibo_workspace/data/SpatialLM-Dataset/layout/{scene_ids[0]}.txt"
-# dst = "/home/haibo/haibo_workspace/data/SpatialLM-Dataset/examples/gt.txt"
-# shutil.copy(src, dst)
-
-
-
 import shutil
 import os
 with open('/home/haibo/haibo_workspace/data/pred.txt', "w", encoding="utf-8") as f:
     f.write(pred + "\n")
-
-src = os.path.join(f'/home/haibo/haibo_workspace/data/scannet-dataset/{scene_ids[0]}/', scene_ids[0]+'_vh_clean_2.ply')
-dst = "/home/haibo/haibo_workspace/data/pred.ply"
-shutil.copy(src, dst)
+o3d.io.write_point_cloud("/home/haibo/haibo_workspace/data/pred.ply", item['axis_aligned_point_cloud'])

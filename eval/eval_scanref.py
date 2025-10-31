@@ -111,32 +111,47 @@ def evaluate(rank, dataset, split_index_list):
     device = f'cuda:{rank}'
 
 
+    # torch_dtype = torch.bfloat16
+    # MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/weights/Qwen3-0.6B"
+    # POINT_DIR="/home/haibo/haibo_workspace/weights/sonata"
+    # CKPT="/home/haibo/haibo_workspace/checkpoints/SpatialLM-Qwen3-0.6B-Further-FT-ScanRef/model.safetensors"
+
+    # """
+    # initialize the model
+    # """
+    # from transformers import Qwen3Config
+    # model = SpatialQwen3(
+    #         config= Qwen3Config.from_pretrained(MODEL_NAME_OR_PATH),
+    #         sonata_path=POINT_DIR,
+    #         llm_path=MODEL_NAME_OR_PATH,
+    #         tokenizer_model_max_length=32*1024,
+    #         torch_dtype=torch_dtype,
+    #         num_bins=1280,
+    # )
+    # print(get_parameter_number(model))
+
+    # """
+    # load checkpoint
+    # """
+    # from safetensors.torch import load_file
+    # loaded_state_dict = load_file(CKPT)
+    # model.load_state_dict(loaded_state_dict, strict=True)
+    # model.to(device)
+
     torch_dtype = torch.bfloat16
-    MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/weights/Qwen3-0.6B"
-    POINT_DIR="/home/haibo/haibo_workspace/weights/sonata"
-    CKPT="/home/haibo/haibo_workspace/checkpoints/SpatialLM-Qwen3-0.6B-Further-FT-ScanRef/model.safetensors"
+    MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-InternVL3_5-1B-HF-FT-ScanRef-Multi3DRef/checkpoint-120000"
 
     """
     initialize the model
     """
-    from transformers import Qwen3Config
-    model = SpatialQwen3(
-            config= Qwen3Config.from_pretrained(MODEL_NAME_OR_PATH),
-            sonata_path=POINT_DIR,
-            llm_path=MODEL_NAME_OR_PATH,
-            tokenizer_model_max_length=32*1024,
-            torch_dtype=torch_dtype,
-            num_bins=1280,
-    )
+    from models.internvl3_5 import InternVLForConditionalGeneration
+    model = InternVLForConditionalGeneration.from_pretrained(
+        MODEL_NAME_OR_PATH, 
+        tokenizer_model_max_length=32*1024,
+        attn_implementation="flash_attention_2", 
+        torch_dtype=torch_dtype,
+    ).to(device)
     print(get_parameter_number(model))
-
-    """
-    load checkpoint
-    """
-    from safetensors.torch import load_file
-    loaded_state_dict = load_file(CKPT)
-    model.load_state_dict(loaded_state_dict, strict=True)
-    model.to(device)
 
     """
     inference
@@ -159,14 +174,16 @@ def evaluate(rank, dataset, split_index_list):
         input_ids = []
         labels = []
         input_pcd = []
+        pixel_values_videos = []
 
         input_ids.append(item['input_ids'].to(device))
         labels.append(item['labels'].to(device))
         input_pcd.append(item['input_pcd'].to(device))
+        pixel_values_videos.append(item['pixel_values_videos'].to(device))
 
         with torch.inference_mode():
             with torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
-                (input_ids, position_ids, attention_mask, inputs_embeds, _) = model.prepare_inputs_labels_for_multimodal(input_ids, labels, input_pcd)
+                (input_ids, position_ids, attention_mask, inputs_embeds, _) = model.prepare_inputs_labels_for_multimodal(input_ids, labels, pixel_values_videos)
                 # Inference: Generation of the output
                 generated_ids = model.language_model.generate(inputs_embeds=inputs_embeds, **generate_kwargs)
                 output_text = dataset.tokenizer.batch_decode(
@@ -210,7 +227,7 @@ if __name__ == "__main__":
     random.shuffle(index_list)
 
     # 按GPU数目划分数据
-    num_gpus = 4
+    num_gpus = 2
     splits = np.array_split(index_list, num_gpus)
 
     mp.set_start_method('spawn')  # 确保能正确启动子进程

@@ -8,6 +8,7 @@ flash-attn==2.7.3
 open3d==0.18.0
 peft==0.17.1
 timm 
+opencv-python==4.8.1.78
 spconv-cu120
 wandb
 einops

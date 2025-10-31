@@ -12,7 +12,22 @@ from pcd.pcd_loader import load_o3d_pcd, get_points_and_colors, cleanup_pcd, get
 from pcd.transform import Compose
 from mm_utils.constants import DEFAULT_IMAGE_TOKEN, SCANREF_PROMPT
 
-def load_bboxes(ply_path, segs_path, agg_path):
+def read_axis_alignment(txt_path):
+    with open(txt_path, 'r') as f:
+        content = f.read()
+    start = content.find('axisAlignment =') + len('axisAlignment =')
+    end = content.find('colorHeight', start)
+    axis_data_str = content[start:end].strip()
+    nums = list(map(float, axis_data_str.split()))
+    axis_alignment = np.array(nums).reshape(4, 4)
+    return axis_alignment
+
+def align_axis(points, axisAlignment):
+    points_h = np.concatenate([points, np.ones((points.shape[0], 1))], axis=1)
+    points_aligned = (axisAlignment @ points_h.T).T[:, :3]
+    return points_aligned
+
+def load_bboxes(ply_path, segs_path, agg_path, axisAlignment):
     ply = load_o3d_pcd(ply_path)
     segs_data = load_json(segs_path)
     agg_data = load_json(agg_path)
@@ -32,6 +47,7 @@ def load_bboxes(ply_path, segs_path, agg_path):
 
         point_mask = np.isin(segs_indices, list(segments))
         object_points = all_points[point_mask]
+        object_points = align_axis(object_points, axisAlignment)
 
         min_bound = object_points.min(axis=0)
         max_bound = object_points.max(axis=0)
@@ -95,8 +111,11 @@ class Refit3DDataset(Dataset):
         segs_path = os.path.join(self.anno_path+f'/{scene_id}', scene_id+'_vh_clean_2.0.010000.segs.json')
         agg_path = os.path.join(self.anno_path+f'/{scene_id}', scene_id+'.aggregation.json')
 
+        # axis alignment matrix
+        axisAlignment = read_axis_alignment(os.path.join(self.anno_path+f'/{scene_id}', scene_id+'.txt'))
+
         # extract layout
-        labels, bboxes = load_bboxes(ply_path, segs_path, agg_path)
+        labels, bboxes = load_bboxes(ply_path, segs_path, agg_path, axisAlignment)
         assert len(labels) == len(bboxes)
 
         labels = [labels[i] for i in object_ids]
@@ -104,6 +123,12 @@ class Refit3DDataset(Dataset):
 
         # load point cloud
         point_cloud = load_o3d_pcd(ply_path)
+        # axis alignment
+        points = np.asarray(point_cloud.points)
+        points_aligned = align_axis(points, axisAlignment)
+        point_cloud.points = o3d.utility.Vector3dVector(points_aligned)
+        axis_aligned_point_cloud = point_cloud
+
         grid_size = get_grid_size(self.num_bins)
         point_cloud = cleanup_pcd(point_cloud, voxel_size=grid_size)
         points, colors = get_points_and_colors(point_cloud)
@@ -149,6 +174,8 @@ class Refit3DDataset(Dataset):
         data_dict['grid_size'] = grid_size
         data_dict['object_name'] = object_name
         data_dict['description'] = description
+        data_dict['axisAlignment'] = axisAlignment
+        data_dict['axis_aligned_point_cloud'] = axis_aligned_point_cloud
 
         return data_dict
 

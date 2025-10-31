@@ -45,6 +45,8 @@ from datasets.scanref import ScanRefDataset
 dataset = ScanRefDataset(split_path = '/home/haibo/haibo_workspace/data/scanref/ScanRefer_filtered_val.json',)
 # from datasets.multi3dref import Multi3DRefDataset
 # dataset = Multi3DRefDataset(split_path = '/home/haibo/haibo_workspace/data/multi3drefer_train_val/multi3drefer_val.json',)
+# from datasets.referit3d import Refit3DDataset
+# dataset = Refit3DDataset(split_path = '/home/haibo/haibo_workspace/data/referit3d/nr3d.csv',)
 
 input_ids = []
 labels = []

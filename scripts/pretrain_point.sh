@@ -13,7 +13,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 torchrun --nnodes=1 --nproc-per-node=4 --master_por
     --point_name_or_path ${POINT_DIR} \
     --output_dir ${OUTPUT_DIR} \
     --num_train_epochs 5 \
-    --per_device_train_batch_size 6 \
+    --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 1 \
     --save_strategy "steps" \
     --save_steps 20000 \
@@ -28,6 +28,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 torchrun --nnodes=1 --nproc-per-node=4 --master_por
     --tf32 True \
     --model_max_length 8192 \
     --num_bins 1280 \
+    --num_frames 0 \
     --gradient_checkpointing False \
     --dataloader_num_workers 4 \
     --report_to "wandb" \

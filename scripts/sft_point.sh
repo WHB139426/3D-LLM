@@ -5,7 +5,7 @@ RESUME_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-Qwen3-0.6B-Pretra
 
 RUN_NAME="SpatialLM-Qwen3-0.6B-FT-ScanRef-Multi3DRef-ReferIt3D"
 
-CUDA_VISIBLE_DEVICES=4,5,6,7 torchrun --nnodes=1 --nproc-per-node=4 --master_port=32123 training/train.py \
+CUDA_VISIBLE_DEVICES=4,5,6,7 torchrun --nnodes=1 --nproc-per-node=4 --master_port=12312 training/train.py \
     --unfreeze_point_backbone \
     --deepspeed ./configs/zero2.json \
     --dataset scanref_multi3dref_referit3d \
@@ -13,8 +13,8 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 torchrun --nnodes=1 --nproc-per-node=4 --master_por
     --model_name_or_path ${MODEL_NAME_OR_PATH} \
     --point_name_or_path ${POINT_DIR} \
     --output_dir ${OUTPUT_DIR} \
-    --num_train_epochs 30 \
-    --per_device_train_batch_size 16 \
+    --num_train_epochs 10 \
+    --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 1 \
     --save_strategy "steps" \
     --save_steps 20000 \

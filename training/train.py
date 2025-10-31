@@ -156,8 +156,10 @@ def make_supervised_data_module(data_args, processor_path) -> Dict[str, Any]:
         scannet_dataset = ScannetDataset(
             split_path = '/home/haibo/haibo_workspace/data/scannet-dataset/train.json',
             anno_path = '/home/haibo/haibo_workspace/data/scannet-dataset',
+            video_path = '/home/haibo/haibo_workspace/data/scannet-frames',
             processor_path=processor_path,
             num_bins = data_args.num_bins,
+            num_frames = data_args.num_frames,
         )
         train_dataset.append(scannet_dataset)
         print('add scannet')
@@ -196,7 +198,7 @@ def make_supervised_data_module(data_args, processor_path) -> Dict[str, Any]:
             num_frames = data_args.num_frames,
         )
         train_dataset.append(referit3d_dataset)
-        print('add multi3dref')
+        print('add referit3d')
     data_collator = DataCollatorForSupervisedDataset()
 
     if len(train_dataset) == 1:

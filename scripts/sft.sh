@@ -1,9 +1,9 @@
 MODEL_NAME_OR_PATH="/home/haibo/haibo_workspace/weights/Qwen3-0.6B"
 POINT_DIR="/home/haibo/haibo_workspace/weights/sonata"
-OUTPUT_DIR="/home/haibo/haibo_workspace/checkpoints/SpatialLM-Qwen3-0.6B-FT-ScanRef-Multi3DRef"
+OUTPUT_DIR="/home/haibo/haibo_workspace/checkpoints/SpatialLM-Qwen3-0.6B-FT-ScanRef-Multi3DRef-ReferIt3D"
 RESUME_PATH="/home/haibo/haibo_workspace/checkpoints/SpatialLM-Qwen3-0.6B-Pretrain-SpatialLM-Scannet/model.safetensors"
 
-RUN_NAME="SpatialLM-Qwen3-0.6B-FT-ScanRef-Multi3DRef"
+RUN_NAME="SpatialLM-Qwen3-0.6B-FT-ScanRef-Multi3DRef-ReferIt3D"
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nnodes=1 --nproc-per-node=4 --master_port=32123 training/train.py \
     --unfreeze_point_backbone \
